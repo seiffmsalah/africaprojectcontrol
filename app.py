@@ -1,106 +1,79 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
+import plotly.express as px
 
-# 1. AI Theme Setup
-st.set_page_config(page_title="AI Project Command", layout="wide", initial_sidebar_state="collapsed")
+# 1. Page Setup
+st.set_page_config(page_title="Elsewedy Project Controls", layout="wide")
 
-# Custom CSS for "Out of this World" look (Dark Glassmorphism)
+# 2. Elsewedy Branding (White, Red, Black)
 st.markdown("""
     <style>
-    .main { background-color: #0E1117; color: #FFFFFF; }
-    .stMetric { 
-        background: rgba(255, 255, 255, 0.05); 
-        padding: 20px; border-radius: 15px; 
-        border: 1px solid rgba(204, 0, 0, 0.3);
-        box-shadow: 0 4px 15px rgba(204, 0, 0, 0.2);
-    }
-    [data-testid="stMetricValue"] { color: #FF0000 !important; font-family: 'Courier New'; }
-    .stDataFrame { border: 1px solid #444; border-radius: 10px; }
+    .main { background-color: #FFFFFF; }
+    h1, h2, h3 { color: #000000 !important; font-family: 'Arial', sans-serif; font-weight: bold; }
+    [data-testid="stMetricValue"] { color: #CC0000 !important; }
+    .stDataFrame { border: 1px solid #EEEEEE; }
+    /* Style the sidebar to be sleek black/grey */
+    [data-testid="stSidebar"] { background-color: #F8F9FA; border-right: 2px solid #CC0000; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Advanced Project Data
+# 3. Your Full Project Data (EAC, Budget, POC, etc.)
+# You can edit these numbers right here!
 data = {
-    'Project': ['Nile Bridge I', 'Lagos Port', 'Nairobi Rail', 'Cape Wind', 'Accra Tech'],
-    'Country': ['Egypt', 'Nigeria', 'Kenya', 'South Africa', 'Ghana'],
-    'lat': [26.8, 9.08, -1.28, -30.5, 7.9], 
-    'lon': [30.8, 8.6, 36.8, 22.9, -1.0],
-    'Value': [250, 410, 150, 320, 95], # In Millions
-    'POC': [85, 45, 92, 30, 65],
-    'Risk_Level': ['Low', 'High', 'Low', 'Medium', 'Critical']
+    'Project': ['Nile Power Plant', 'Lagos Substation', 'Nairobi Grid', 'Tanzania Dam', 'Algeria Solar'],
+    'Country': ['Egypt', 'Nigeria', 'Kenya', 'Tanzania', 'Algeria'],
+    'lat': [30.04, 6.52, -1.29, -6.36, 36.75], 
+    'lon': [31.23, 3.37, 36.82, 34.88, 3.05],
+    'Budget_Cost': [500000000, 120000000, 85000000, 900000000, 45000000],
+    'Actual_Cost': [350000000, 95000000, 20000000, 400000000, 10000000],
+    'EAC': [480000000, 125000000, 82000000, 890000000, 42000000],
+    'POC_Percentage': [72, 80, 25, 45, 15],
+    'Currency': ['USD', 'USD', 'USD', 'USD', 'USD']
 }
 df = pd.DataFrame(data)
 
-# 3. Sidebar Selection (AI pill interaction)
-st.title("🛰️ AFRICA AI COMMAND CENTER")
-st.write("### Portfolio Intelligence & Geospatial Analytics")
+# Calculations
+df['Variance'] = df['Budget_Cost'] - df['EAC']
 
-selected_project = st.selectbox("🎯 Target Project for Analysis:", df['Project'])
-project_data = df[df['Project'] == selected_project].iloc[0]
+# 4. Header
+st.image("https://upload.wikimedia.org/wikipedia/commons/b/b2/Elsewedy_Electric_Logo.png", width=200) # Placeholder for logo
+st.title("🌍 Africa Portfolio Executive Dashboard")
+st.markdown("---")
 
-# 4. Top Interactive Metrics
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Project Focus", project_data['Project'])
-col2.metric("Contract Value", f"${project_data['Value']}M")
-col3.metric("Completion (POC)", f"{project_data['POC']}%")
-col4.metric("Risk Status", project_data['Risk_Level'])
+# 5. Top KPIs
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Total Portfolio (Budget)", f"${df['Budget_Cost'].sum()/1e6:.1f}M")
+c2.metric("Total Actual Spend", f"${df['Actual_Cost'].sum()/1e6:.1f}M")
+c3.metric("Avg POC %", f"{df['POC_Percentage'].mean():.1f}%")
+c4.metric("EAC Forecast", f"${df['EAC'].sum()/1e6:.1f}M")
 
-# 5. 3D Animated Globe
-st.markdown("### 🌐 Global Geospatial Positioning")
-
-fig = go.Figure()
-
-# Add all projects as glowing points
-fig.add_trace(go.Scattergeo(
-    lon = df['lon'], lat = df['lat'],
-    text = df['Project'],
-    marker = dict(
-        size = 12, color = '#FF0000', symbol = 'circle',
-        line = dict(width=2, color='white'),
-        opacity = 0.8
-    ),
-    name = "Active Projects"
-))
-
-# Highlight selected project with a "Radar Pulse" effect
-fig.add_trace(go.Scattergeo(
-    lon = [project_data['lon']], lat = [project_data['lat']],
-    marker = dict(size = 25, color = 'rgba(255, 0, 0, 0.4)', symbol = 'circle'),
-    name = "Target Focus"
-))
-
-# Configure the 3D Globe
-fig.update_geos(
-    projection_type="orthographic", # Makes it a 3D Globe
-    showcountries=True, countrycolor="#444",
-    showocean=True, oceancolor="#000814",
-    showlakes=True, lakecolor="#000814",
-    bgcolor='rgba(0,0,0,0)',
-    # Fly-to effect: center the globe on the selected project
-    projection_rotation=dict(lon=project_data['lon'], lat=project_data['lat'], roll=0)
+# 6. Interactive Map (Clicking triggers info)
+st.subheader("Project Map (Click dots to view stats)")
+fig = px.scatter_mapbox(
+    df, lat="lat", lon="lon", 
+    size="Budget_Cost", 
+    color="POC_Percentage",
+    color_continuous_scale=['#000000', '#CC0000'], # Black to Elsewedy Red
+    hover_name="Project",
+    hover_data={
+        "lat": False, "lon": False, 
+        "Budget_Cost": ":$,.0f", 
+        "Actual_Cost": ":$,.0f", 
+        "EAC": ":$,.0f", 
+        "POC_Percentage": ":.1f%"
+    },
+    zoom=2.8, height=600
 )
 
 fig.update_layout(
-    height=600, margin={"r":0,"t":0,"l":0,"b":0},
-    paper_bgcolor='rgba(0,0,0,0)',
-    plot_bgcolor='rgba(0,0,0,0)',
-    showlegend=False
+    mapbox_style="carto-positron",
+    margin={"r":0,"t":0,"l":0,"b":0},
+    clickmode='event+select'
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
-# 6. AI Interaction Panel
+# 7. Financial Table (The "Hard Data")
 st.markdown("---")
-left, right = st.columns([1, 2])
-
-with left:
-    st.write("### 🤖 AI Insight")
-    if project_data['Risk_Level'] == 'Critical':
-        st.error(f"Attention: {project_data['Project']} shows a GP slippage of 4%. Immediate intervention required in {project_data['Country']}.")
-    else:
-        st.success(f"System Check: {project_data['Project']} is performing within parameters. No immediate risk detected.")
-
-with right:
-    st.write("### 📊 Financial Timeline")
-    st.line_chart(df['Value']) # Placeholder for actual historical data
+st.subheader("Project Financial Summary")
+st.dataframe(df.drop(['lat', 'lon'], axis=1), use_container_width=True)
