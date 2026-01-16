@@ -27,10 +27,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Logo
+# Logo – using reliable public SVG from Wikimedia Commons
 st.markdown(
     '<div class="logo-container">'
-    '<img src="https://elsewedy.com/wp-content/uploads/2023/04/Elsewedy-Electric-TD-Logo.png" alt="Elsewedy Electric T&D Logo">'
+    '<img src="https://upload.wikimedia.org/wikipedia/commons/0/0d/Elsewedy_Electric_Logo.svg" alt="Elsewedy Electric Logo">'
     '</div>',
     unsafe_allow_html=True
 )
@@ -155,7 +155,7 @@ if chart and 'selection' in chart and chart['selection']:
             st.session_state.selected_country = clicked_country
 
 # ────────────────────────────────────────────────
-# Project Details + two donut charts (like before)
+# Project Details + two donut charts
 # ────────────────────────────────────────────────
 if st.session_state.selected_country:
     country = st.session_state.selected_country
