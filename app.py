@@ -1,80 +1,168 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import numpy as np
 
-# 1. Force Clean White Theme & Branding
-st.set_page_config(page_title="Elsewedy Project Command", layout="wide")
-
+# Set page config for white background and custom theme
+st.set_page_config(page_title="Project Construction Dashboard", layout="wide")
 st.markdown("""
     <style>
-    /* Force background to white and text to black */
-    .stApp { background-color: #FFFFFF; }
-    [data-testid="stMetricValue"] { color: #CC0000 !important; font-weight: bold; }
-    [data-testid="stMetricLabel"] { color: #555555 !important; }
-    .project-card {
-        padding: 20px; border-radius: 10px; background: #F8F9FA;
-        border-left: 5px solid #CC0000; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+    .stApp {
+        background-color: white;
+    }
+    .stMetric {
+        color: black;
+    }
+    .stProgress > div > div > div > div {
+        background-color: red;
     }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# 2. Comprehensive Project Data (Budget, Actuals, EAC, POC)
-data = {
-    'Project': ['Nile Power 1', 'Lagos Substation', 'Nairobi Grid', 'Tanzania Dam', 'Algeria Solar'],
-    'Country': ['Egypt', 'Nigeria', 'Kenya', 'Tanzania', 'Algeria'],
-    'lat': [30.04, 6.52, -1.29, -6.36, 36.75], 
-    'lon': [31.23, 3.37, 36.82, 34.88, 3.05],
-    'Budget_Cost': [500000000, 120000000, 85000000, 900000000, 45000000],
-    'Actual_Cost': [350000000, 95000000, 20000000, 400000000, 10000000],
-    'EAC': [480000000, 125000000, 82000000, 890000000, 42000000],
-    'POC_Percentage': [72, 80, 25, 45, 15]
-}
-df = pd.DataFrame(data)
+# Sample data generation
+# List of African countries for the map
+african_countries = [
+    'Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon', 'Cape Verde',
+    'Central African Republic', 'Chad', 'Comoros', 'Democratic Republic of the Congo', 'Republic of Congo',
+    'Djibouti', 'Egypt', 'Equatorial Guinea', 'Eritrea', 'Eswatini', 'Ethiopia', 'Gabon', 'Gambia',
+    'Ghana', 'Guinea', 'Guinea-Bissau', 'Ivory Coast', 'Kenya', 'Lesotho', 'Liberia', 'Libya',
+    'Madagascar', 'Malawi', 'Mali', 'Mauritania', 'Mauritius', 'Morocco', 'Mozambique', 'Namibia',
+    'Niger', 'Nigeria', 'Rwanda', 'Sao Tome and Principe', 'Senegal', 'Seychelles', 'Sierra Leone',
+    'Somalia', 'South Africa', 'South Sudan', 'Sudan', 'Tanzania', 'Togo', 'Tunisia', 'Uganda', 'Zambia', 'Zimbabwe'
+]
 
-# 3. Header & Navigation
-st.title("🔴 ELSEWEDY ELECTRIC | Africa Portfolio")
-st.markdown("### Executive Project Control Dashboard")
+# Generate sample project data for a subset of countries
+selected_countries = np.random.choice(african_countries, size=10, replace=False)
+data = pd.DataFrame({
+    'Country': selected_countries,
+    'Revenue': np.random.randint(1000000, 5000000, size=10),
+    'Budget Cost': np.random.randint(800000, 4000000, size=10),
+    'Actual Costs': np.random.randint(500000, 3000000, size=10),
+    'Achieved Revenue': np.random.randint(400000, 2000000, size=10),
+    'POC': np.random.uniform(0.2, 0.9, size=10),  # Percentage of Completion
+    'Planned Progress': np.random.uniform(0.3, 0.95, size=10),
+    'Actual Progress': np.random.uniform(0.25, 0.85, size=10),
+    'Total Float': np.random.randint(10, 100, size=10)  # Days
+})
 
-# 4. The Smart Map (Using Mapbox Light Style)
-st.subheader("Interactive Geographic Intelligence")
-fig = px.scatter_mapbox(
-    df, lat="lat", lon="lon", 
-    size="Budget_Cost", 
-    color="POC_Percentage",
-    color_continuous_scale=['#000000', '#CC0000'], # Black to Red
-    hover_name="Project",
-    hover_data={"lat": False, "lon": False, "Budget_Cost": True, "POC_Percentage": True},
-    zoom=2.8, height=550
+# Calculations
+data['GP%'] = ((data['Revenue'] - data['Budget Cost']) / data['Revenue']) * 100
+data['EAC'] = data['Budget Cost'] / data['POC']  # Simplified Estimate at Completion
+data['ETC'] = data['EAC'] - data['Actual Costs']  # Estimate to Complete
+
+# Full map data (including all African countries, with NaN for no data)
+map_data = pd.DataFrame({'Country': african_countries})
+map_data = map_data.merge(data, on='Country', how='left')
+map_data['Has Data'] = ~map_data['Revenue'].isna()
+
+# Sidebar for selection
+st.sidebar.title("Filters")
+selected_country = st.sidebar.selectbox("Select Country/Project", options=sorted(data['Country'].unique()))
+
+# Main dashboard
+st.title("Project Construction Dashboard")
+
+# Interactive Map
+st.subheader("Africa Project Map")
+fig = px.choropleth(
+    map_data,
+    locations='Country',
+    locationmode='country names',
+    color='Has Data',
+    color_discrete_map={True: 'red', False: 'grey'},
+    scope='africa',
+    labels={'Has Data': 'Project Availability'},
+    hover_name='Country',
+    hover_data={'Revenue': True, 'Budget Cost': True} if 'Revenue' in map_data else None
 )
-
-# Use 'light' or 'carto-positron' for a clean, professional "smart" look
 fig.update_layout(
-    mapbox_style="light", 
-    mapbox_accesstoken="pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNqdnBvNDM4ZTAxZTM0M2lsMSNoMzY3dXoifQ.8px9Z3YBT88_6U_R6mN8tA", # Public token
-    margin={"r":0,"t":0,"l":0,"b":0}
+    coloraxis_showscale=False,
+    margin={"r":0,"t":0,"l":0,"b":0},
+    paper_bgcolor='white',
+    geo=dict(bgcolor='white')
 )
 
-# Render the map and capture the click
+# Highlight selected country
+if selected_country:
+    selected_data = map_data[map_data['Country'] == selected_country]
+    fig.add_trace(px.choropleth(
+        selected_data,
+        locations='Country',
+        locationmode='country names',
+        color_discrete_sequence=['black'],
+        scope='africa'
+    ).data[0])
+
 st.plotly_chart(fig, use_container_width=True)
 
-# 5. Smart Interaction: Project Spotlight
-st.markdown("---")
-st.subheader("🎯 Selection Analysis")
-selected_name = st.selectbox("Select a project for deep-dive analysis:", df['Project'])
-p = df[df['Project'] == selected_name].iloc[0]
-
-# Detailed Card with all metrics
-with st.container():
-    st.markdown(f"""<div class="project-card">
-    <h3>{p['Project']} - {p['Country']}</h3>
-    </div>""", unsafe_allow_html=True)
+# Filter data for selected country
+if selected_country:
+    project_data = data[data['Country'] == selected_country].iloc[0]
     
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Budget Cost", f"${p['Budget_Cost']/1e6:.1f}M")
-    m2.metric("Actual Cost", f"${p['Actual_Cost']/1e6:.1f}M")
-    m3.metric("EAC Forecast", f"${p['EAC']/1e6:.1f}M")
-    m4.metric("POC Completion", f"{p['POC_Percentage']}%")
-
-# 6. Full Data Table at the bottom
-with st.expander("View Full Data Inventory"):
-    st.dataframe(df.style.highlight_max(axis=0, color='#FFCCCC'), use_container_width=True)
+    # KPI Metrics in columns
+    st.subheader(f"Key Metrics for {selected_country}")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Revenue", f"${project_data['Revenue']:,}")
+        st.metric("Budget Cost", f"${project_data['Budget Cost']:,}")
+    
+    with col2:
+        st.metric("GP%", f"{project_data['GP%']:.2f}%")
+        st.metric("Actual Costs", f"${project_data['Actual Costs']:,}")
+    
+    with col3:
+        st.metric("Achieved Revenue", f"${project_data['Achieved Revenue']:,}")
+        st.metric("POC", f"{project_data['POC']*100:.2f}%")
+    
+    with col4:
+        st.metric("EAC", f"${project_data['EAC']:.0f}")
+        st.metric("ETC", f"${project_data['ETC']:.0f}")
+    
+    # Progress Section
+    st.subheader("Progress Overview")
+    prog_col1, prog_col2 = st.columns(2)
+    
+    with prog_col1:
+        st.write("Planned Progress")
+        st.progress(project_data['Planned Progress'], text=f"{project_data['Planned Progress']*100:.2f}%")
+        
+        st.write("Actual Progress")
+        st.progress(project_data['Actual Progress'], text=f"{project_data['Actual Progress']*100:.2f}%")
+    
+    with prog_col2:
+        # Simple bar chart for comparison
+        progress_df = pd.DataFrame({
+            'Type': ['Planned', 'Actual'],
+            'Progress': [project_data['Planned Progress'], project_data['Actual Progress']]
+        })
+        bar_fig = px.bar(
+            progress_df,
+            x='Type',
+            y='Progress',
+            color='Type',
+            color_discrete_map={'Planned': 'grey', 'Actual': 'red'},
+            labels={'Progress': 'Progress %'},
+            height=300
+        )
+        bar_fig.update_layout(
+            paper_bgcolor='white',
+            plot_bgcolor='white',
+            showlegend=False,
+            yaxis_tickformat='.0%'
+        )
+        st.plotly_chart(bar_fig, use_container_width=True)
+    
+    # Total Float
+    st.subheader("Schedule")
+    st.metric("Total Float", f"{project_data['Total Float']} days")
+    
+    # Interactive elements: Slider for scenario analysis
+    st.subheader("Scenario Analysis")
+    adjusted_poc = st.slider("Adjust POC for What-If Analysis", 0.0, 1.0, project_data['POC'])
+    adjusted_eac = project_data['Budget Cost'] / adjusted_poc if adjusted_poc > 0 else 0
+    adjusted_etc = adjusted_eac - project_data['Actual Costs']
+    st.metric("Adjusted EAC", f"${adjusted_eac:.0f}")
+    st.metric("Adjusted ETC", f"${adjusted_etc:.0f}")
+else:
+    st.info("Select a country from the sidebar to view project details.")
