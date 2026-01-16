@@ -5,17 +5,13 @@ import plotly.graph_objects as go
 import numpy as np
 
 # ────────────────────────────────────────────────
-# Page config + styling (with continuous background animation)
+# Page config + styling
 # ────────────────────────────────────────────────
 st.set_page_config(page_title="Elsewedy T&D Project Dashboard", layout="wide")
 
 st.markdown("""
     <style>
-    .stApp, .main, .block-container { 
-        background-color: white !important; 
-        position: relative;
-        overflow: hidden;
-    }
+    .stApp, .main, .block-container { background-color: white !important; }
     body, div, span, p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stText,
     .stExpander, .stSidebar, .stSelectbox, .stSlider, .stNumberInput {
         color: #1a1a1a !important;
@@ -29,47 +25,10 @@ st.markdown("""
     .logo-container { text-align: center; margin: 1.5rem 0 2rem 0; }
     .logo-container img { max-width: 400px; height: auto; }
     .country-flag { font-size: 2.2rem; margin-left: 0.5rem; }
-
-    /* Continuous subtle background animation */
-    .bg-animation {
-        position: fixed;
-        inset: 0;
-        z-index: -2;
-        pointer-events: none;
-        background: 
-            radial-gradient(circle at 15% 25%, rgba(220, 20, 60, 0.08) 0%, transparent 35%),
-            radial-gradient(circle at 85% 75%, rgba(220, 20, 60, 0.06) 0%, transparent 40%);
-        animation: breathing 24s ease-in-out infinite alternate;
-    }
-
-    @keyframes breathing {
-        0%   { opacity: 0.35; transform: scale(1.0) rotate(0deg); }
-        50%  { opacity: 0.65; transform: scale(1.08) rotate(0.5deg); }
-        100% { opacity: 0.35; transform: scale(1.0) rotate(1deg); }
-    }
-
-    .bg-animation::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: 
-            radial-gradient(circle at 30% 40%, rgba(180,0,0,0.12) 1px, transparent 2px),
-            radial-gradient(circle at 70% 60%, rgba(180,0,0,0.10) 1px, transparent 2px);
-        background-size: 60px 60px;
-        animation: drift 180s linear infinite;
-        opacity: 0.25;
-    }
-
-    @keyframes drift {
-        0%   { background-position: 0 0; }
-        100% { background-position: 300px 300px; }
-    }
     </style>
-
-    <div class="bg-animation"></div>
 """, unsafe_allow_html=True)
 
-# Logo
+# Logo – using a stable mirror (black bg + red curve style)
 st.markdown(
     '<div class="logo-container">'
     '<img src="https://logos-world.net/wp-content/uploads/2023/04/Elsewedy-Electric-Logo.png" alt="Elsewedy Electric Logo">'
