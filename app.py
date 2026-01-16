@@ -28,10 +28,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Logo
+# Logo – updated to black-background variant matching your provided image/style
 st.markdown(
     '<div class="logo-container">'
-    '<img src="https://seeklogo.com/images/E/elsewedy-electric-logo-0E0E0E0E0E-seeklogo.com.png" alt="Elsewedy Electric Logo">'
+    '<img src="https://logos-world.net/wp-content/uploads/2023/04/Elsewedy-Electric-Logo.png" alt="Elsewedy Electric Logo">'
     '</div>',
     unsafe_allow_html=True
 )
