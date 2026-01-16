@@ -23,14 +23,14 @@ st.markdown("""
     section[data-testid="stSidebar"] { background-color: #f8f9fa !important; }
     h1, h2, h3 { color: black !important; }
     .logo-container { text-align: center; margin: 1.5rem 0 2rem 0; }
-    .logo-container img { max-width: 380px; height: auto; }
+    .logo-container img { max-width: 400px; height: auto; }
     </style>
 """, unsafe_allow_html=True)
 
-# Logo – using reliable public SVG from Wikimedia Commons
+# Logo – switched to reliable PNG from seeklogo (allows embedding)
 st.markdown(
     '<div class="logo-container">'
-    '<img src="https://upload.wikimedia.org/wikipedia/commons/0/0d/Elsewedy_Electric_Logo.svg" alt="Elsewedy Electric Logo">'
+    '<img src="https://seeklogo.com/images/E/elsewedy-electric-logo-0E0E0E0E0E-seeklogo.com.png" alt="Elsewedy Electric Logo">'
     '</div>',
     unsafe_allow_html=True
 )
