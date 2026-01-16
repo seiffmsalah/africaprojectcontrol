@@ -5,7 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 # ────────────────────────────────────────────────
-# Page config + readable dark text on white bg
+# Page config + readable dark text on white background
 # ────────────────────────────────────────────────
 st.set_page_config(page_title="Project Construction Dashboard", layout="wide")
 
@@ -26,7 +26,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ────────────────────────────────────────────────
-# Sample data
+# Sample data generation
 # ────────────────────────────────────────────────
 african_countries = [
     'Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon', 'Cape Verde',
@@ -56,27 +56,27 @@ data['GP%'] = ((data['Revenue'] - data['Budget Cost']) / data['Revenue']) * 100
 data['EAC'] = data['Budget Cost'] / np.maximum(data['POC'], 0.005)
 data['ETC'] = data['EAC'] - data['Actual Costs']
 
-# Full map dataset
+# Prepare map dataset
 map_data = pd.DataFrame({'Country': african_countries})
 map_data = map_data.merge(data, on='Country', how='left')
 map_data['Has Data'] = ~map_data['Revenue'].isna()
 map_data['hover_text'] = map_data.apply(
-    lambda r: f"{r['Country']}<br>{'Has project' if r['Has Data'] else 'No data'}", axis=1
+    lambda r: f"{r['Country']}<br>{'Has project data' if r['Has Data'] else 'No project data'}", axis=1
 )
 
 # ────────────────────────────────────────────────
-# Session state for selected country (map click → details)
+# Session state to track selected country from map click
 # ────────────────────────────────────────────────
 if 'selected_country' not in st.session_state:
     st.session_state.selected_country = None
 
 # ────────────────────────────────────────────────
-# UI Layout
+# Main UI
 # ────────────────────────────────────────────────
 st.title("Project Construction Dashboard")
-st.markdown("Africa – Construction Project Overview")
+st.markdown("Africa – Construction Project Overview & Control")
 
-# Sidebar (still useful for quick jump or reset)
+# Sidebar controls
 st.sidebar.title("Controls")
 sidebar_country = st.sidebar.selectbox(
     "Jump to Country / Project",
@@ -91,7 +91,7 @@ if st.sidebar.button("Clear Selection"):
     st.session_state.selected_country = None
     st.rerun()
 
-# ───── Interactive Map ─────
+# ───── Interactive Africa Map ─────
 st.subheader("Project Locations – Africa")
 
 fig = px.choropleth(
@@ -108,7 +108,8 @@ fig = px.choropleth(
         'Has Data': False,
         'Country': False
     },
-    customdata=map_data['Country']
+    # Fixed: customdata must be 2D array-like
+    customdata=map_data[['Country']].values
 )
 
 fig.update_traces(
@@ -125,7 +126,7 @@ fig.update_layout(
     clickmode='event+select'
 )
 
-# Highlight selected country
+# Highlight selected country with black border
 if st.session_state.selected_country:
     sel = map_data[map_data['Country'] == st.session_state.selected_country]
     if not sel.empty:
@@ -140,26 +141,28 @@ if st.session_state.selected_country:
             hoverinfo='skip'
         ))
 
-# Capture click event
-selected_points = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
+# Render chart and capture selection/click
+chart = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-# ───── Handle map click ─────
-if selected_points and 'selection' in selected_points and selected_points['selection']:
-    points = selected_points['selection'].get('points', [])
+# ───── Handle map click event ─────
+if chart and 'selection' in chart and chart['selection']:
+    points = chart['selection'].get('points', [])
     if points:
-        # Plotly choropleth click usually gives customdata or location
-        clicked_country = points[0].get('customdata') or points[0].get('location')
-        if clicked_country and clicked_country in data['Country'].values:
-            st.session_state.selected_country = clicked_country
+        # customdata comes as list → take first element
+        clicked_data = points[0].get('customdata')
+        if clicked_data and isinstance(clicked_data, list) and len(clicked_data) > 0:
+            clicked_country = clicked_data[0]
+            if clicked_country in data['Country'].values:
+                st.session_state.selected_country = clicked_country
 
-# ───── Show details when a country is selected ─────
+# ───── Display project details when selected ─────
 if st.session_state.selected_country:
     country = st.session_state.selected_country
     if country in data['Country'].values:
         row = data[data['Country'] == country].iloc[0]
 
         st.subheader(f"Project Details: {country}")
-        st.markdown(f"**Selected via map click**" if country == st.session_state.selected_country else "")
+        st.markdown(f"**Selected via map click / sidebar**")
 
         cols = st.columns(4)
         with cols[0]:
@@ -177,11 +180,11 @@ if st.session_state.selected_country:
 
         st.divider()
 
-        st.subheader("Progress")
+        st.subheader("Progress Comparison")
         prog_cols = st.columns([2, 3])
 
         with prog_cols[0]:
-            st.caption("Planned vs Actual")
+            st.caption("Planned vs Actual Progress")
             st.progress(row['Planned Progress'], text=f"Planned: {row['Planned Progress']*100:.0f}%")
             st.progress(row['Actual Progress'], text=f"Actual:   {row['Actual Progress']*100:.0f}%")
 
@@ -204,23 +207,32 @@ if st.session_state.selected_country:
                 paper_bgcolor='white',
                 plot_bgcolor='white',
                 height=340,
-                margin=dict(l=20,r=20,t=10,b=60)
+                margin=dict(l=20, r=20, t=10, b=60)
             )
             st.plotly_chart(bar, use_container_width=True)
 
         st.divider()
         st.metric("Total Float (Schedule Buffer)", f"{row['Total Float']} days")
 
-        # What-if
-        st.subheader("What-If: Adjust % Complete")
-        adj_poc_pct = st.slider("", 1, 100, int(row['POC']*100), format="%d%%", key=f"slider_{country}")
-        adj_poc = adj_poc_pct / 100
+        # What-if analysis
+        st.subheader("What-If: Simulate Different % Complete")
+        adj_poc_pct = st.slider(
+            "Adjusted Physical % Complete",
+            1, 100,
+            int(row['POC']*100),
+            format="%d%%",
+            key=f"slider_{country}"
+        )
+        adj_poc = adj_poc_pct / 100.0
         adj_eac = row['Budget Cost'] / max(adj_poc, 0.005)
         adj_etc = adj_eac - row['Actual Costs']
         st.metric("Adjusted EAC", f"${adj_eac:,.0f}")
         st.metric("Adjusted ETC", f"${adj_etc:,.0f}")
 
     else:
-        st.warning(f"No project data for {country}.")
+        st.warning(f"No project data available for {country}.")
 else:
-    st.info("Click a red country on the map to view project metrics.")
+    st.info("Click a **red** country on the map to view detailed project metrics.")
+
+st.markdown("---")
+st.caption("Dashboard colors: white background • grey/black/red accents • Sample data only")
