@@ -28,7 +28,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Logo – updated to black-background variant matching your provided image/style
+# Logo – using a stable mirror (black bg + red curve style)
 st.markdown(
     '<div class="logo-container">'
     '<img src="https://logos-world.net/wp-content/uploads/2023/04/Elsewedy-Electric-Logo.png" alt="Elsewedy Electric Logo">'
