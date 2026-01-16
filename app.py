@@ -1,11 +1,13 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import numpy as np
 import plotly.graph_objects as go
+import numpy as np
 
-# Page config + readable dark text on white background
-st.set_page_config(page_title="Project Construction Dashboard", layout="wide")
+# ────────────────────────────────────────────────
+# Page config + styling
+# ────────────────────────────────────────────────
+st.set_page_config(page_title="Elsewedy T&D Project Dashboard", layout="wide")
 
 st.markdown("""
     <style>
@@ -20,10 +22,24 @@ st.markdown("""
     .stProgress > div { background-color: #e0e0e0 !important; }
     section[data-testid="stSidebar"] { background-color: #f8f9fa !important; }
     h1, h2, h3 { color: black !important; }
+    .logo-container { text-align: center; margin-bottom: 1.5rem; }
+    .logo-container img { max-width: 380px; height: auto; }
     </style>
 """, unsafe_allow_html=True)
 
-# Sample data generation
+# ────────────────────────────────────────────────
+# Logo (you can replace URL with your own hosted image if preferred)
+# ────────────────────────────────────────────────
+st.markdown(
+    '<div class="logo-container">'
+    '<img src="https://elsewedy.com/wp-content/uploads/2023/04/Elsewedy-Electric-TD-Logo.png" alt="Elsewedy Electric T&D Logo">'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+# ────────────────────────────────────────────────
+# Sample data
+# ────────────────────────────────────────────────
 african_countries = [
     'Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon', 'Cape Verde',
     'Central African Republic', 'Chad', 'Comoros', 'Democratic Republic of the Congo', 'Republic of Congo',
@@ -52,7 +68,6 @@ data['GP%'] = ((data['Revenue'] - data['Budget Cost']) / data['Revenue']) * 100
 data['EAC'] = data['Budget Cost'] / np.maximum(data['POC'], 0.005)
 data['ETC'] = data['EAC'] - data['Actual Costs']
 
-# Prepare map dataset
 map_data = pd.DataFrame({'Country': african_countries})
 map_data = map_data.merge(data, on='Country', how='left')
 map_data['Has Data'] = ~map_data['Revenue'].isna()
@@ -60,15 +75,17 @@ map_data['hover_text'] = map_data.apply(
     lambda r: f"{r['Country']}<br>{'Has project data' if r['Has Data'] else 'No project data'}", axis=1
 )
 
-# Session state to track selected country from map click
+# Session state
 if 'selected_country' not in st.session_state:
     st.session_state.selected_country = None
 
-# Main UI
-st.title("Project Construction Dashboard")
-st.markdown("Africa – Construction Project Overview & Control")
+# ────────────────────────────────────────────────
+# UI
+# ────────────────────────────────────────────────
+st.title("Elsewedy Electric T&D – Project Construction Dashboard")
+st.markdown("Africa – Project Overview & Control")
 
-# Sidebar controls
+# Sidebar
 st.sidebar.title("Controls")
 sidebar_country = st.sidebar.selectbox(
     "Jump to Country / Project",
@@ -83,7 +100,7 @@ if st.sidebar.button("Clear Selection"):
     st.session_state.selected_country = None
     st.rerun()
 
-# Interactive Africa Map
+# Map
 st.subheader("Project Locations – Africa")
 
 fig = px.choropleth(
@@ -116,7 +133,7 @@ fig.update_layout(
     clickmode='event+select'
 )
 
-# Highlight selected country with black border
+# Highlight selected
 if st.session_state.selected_country:
     sel = map_data[map_data['Country'] == st.session_state.selected_country]
     if not sel.empty:
@@ -131,10 +148,9 @@ if st.session_state.selected_country:
             hoverinfo='skip'
         ))
 
-# Render chart and capture selection/click
 chart = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-# Handle map click event
+# Click handler
 if chart and 'selection' in chart and chart['selection']:
     points = chart['selection'].get('points', [])
     if points:
@@ -142,14 +158,14 @@ if chart and 'selection' in chart and chart['selection']:
         if clicked_country and clicked_country in data['Country'].values:
             st.session_state.selected_country = clicked_country
 
-# Display project details when selected
+# Details
 if st.session_state.selected_country:
     country = st.session_state.selected_country
     if country in data['Country'].values:
         row = data[data['Country'] == country].iloc[0]
 
-        st.subheader(f"Project Details: {country}")
-        st.markdown(f"**Selected via map click / sidebar**")
+        st.subheader(f"Project: {country}")
+        st.markdown("**Selected via map or sidebar**")
 
         cols = st.columns(4)
         with cols[0]:
@@ -167,41 +183,71 @@ if st.session_state.selected_country:
 
         st.divider()
 
-        st.subheader("Progress Comparison")
-        prog_cols = st.columns([2, 3])
+        # ─── Donut Charts for Progress ───
+        st.subheader("Project Progress")
 
-        with prog_cols[0]:
-            st.caption("Planned vs Actual Progress")
-            st.progress(row['Planned Progress'], text=f"Planned: {row['Planned Progress']*100:.0f}%")
-            st.progress(row['Actual Progress'], text=f"Actual:   {row['Actual Progress']*100:.0f}%")
+        donut_cols = st.columns(2)
 
-        with prog_cols[1]:
-            df_prog = pd.DataFrame({
-                'Category': ['Planned Progress', 'Actual Progress'],
-                'Value (%)': [row['Planned Progress']*100, row['Actual Progress']*100]
-            })
-            bar = px.bar(
-                df_prog,
-                x='Category',
-                y='Value (%)',
-                color='Category',
-                color_discrete_map={'Planned Progress': 'grey', 'Actual Progress': 'red'},
-                text_auto='.0f'
-            )
-            bar.update_layout(
-                yaxis_title="Progress (%)",
+        with donut_cols[0]:
+            planned_pct = row['Planned Progress'] * 100
+            fig_planned = go.Figure(data=[go.Pie(
+                values=[planned_pct, 100 - planned_pct],
+                labels=['Planned Progress', 'Remaining'],
+                hole=0.65,
+                marker_colors=['grey', '#f0f0f0'],
+                textinfo='none',
+                hoverinfo='label+percent',
+                pull=[0.02, 0]
+            )])
+            fig_planned.update_layout(
+                title_text=f"Planned: {planned_pct:.0f}%",
+                title_x=0.5,
                 showlegend=False,
                 paper_bgcolor='white',
-                plot_bgcolor='white',
-                height=340,
-                margin=dict(l=20, r=20, t=10, b=60)
+                margin=dict(t=60, b=20, l=20, r=20),
+                height=260,
+                annotations=[dict(
+                    text=f"{planned_pct:.0f}%",
+                    x=0.5, y=0.5,
+                    font_size=32,
+                    showarrow=False,
+                    font_color='black'
+                )]
             )
-            st.plotly_chart(bar, use_container_width=True)
+            st.plotly_chart(fig_planned, use_container_width=True)
+
+        with donut_cols[1]:
+            actual_pct = row['Actual Progress'] * 100
+            fig_actual = go.Figure(data=[go.Pie(
+                values=[actual_pct, 100 - actual_pct],
+                labels=['Actual Progress', 'Remaining'],
+                hole=0.65,
+                marker_colors=['#d32f2f', '#f0f0f0'],
+                textinfo='none',
+                hoverinfo='label+percent',
+                pull=[0.02, 0]
+            )])
+            fig_actual.update_layout(
+                title_text=f"Actual: {actual_pct:.0f}%",
+                title_x=0.5,
+                showlegend=False,
+                paper_bgcolor='white',
+                margin=dict(t=60, b=20, l=20, r=20),
+                height=260,
+                annotations=[dict(
+                    text=f"{actual_pct:.0f}%",
+                    x=0.5, y=0.5,
+                    font_size=32,
+                    showarrow=False,
+                    font_color='black'
+                )]
+            )
+            st.plotly_chart(fig_actual, use_container_width=True)
 
         st.divider()
         st.metric("Total Float (Schedule Buffer)", f"{row['Total Float']} days")
 
-        # What-if analysis
+        # What-if
         st.subheader("What-If: Simulate Different % Complete")
         adj_poc_pct = st.slider(
             "Adjusted Physical % Complete",
@@ -217,9 +263,9 @@ if st.session_state.selected_country:
         st.metric("Adjusted ETC", f"${adj_etc:,.0f}")
 
     else:
-        st.warning(f"No project data available for {country}.")
+        st.warning(f"No project data for {country}.")
 else:
-    st.info("Click a **red** country on the map to view detailed project metrics.")
+    st.info("Click a **red** country on the map to view project details.")
 
 st.markdown("---")
-st.caption("Dashboard colors: white background • grey/black/red accents • Sample data only")
+st.caption("Elsewedy Electric T&D – Project Control Dashboard • Sample data • Colors: white / grey / black / red")
