@@ -1,0 +1,41 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# Dashboard Setup
+st.set_page_config(page_title="Africa Project Controls", layout="wide")
+
+# Custom Red & White Style
+st.markdown("""
+    <style>
+    .main { background-color: #FFFFFF; }
+    div[data-testid="stMetricValue"] { color: #CC0000 !important; }
+    </style>
+    """, unsafe_allow_stdio=True)
+
+st.title("🌍 Africa Projects: Executive Command Center")
+
+# This is your Data (We can link this to Excel later)
+data = {
+    'Project': ['Nile Bridge', 'Lagos Port', 'Nairobi Rail'],
+    'Country': ['Egypt', 'Nigeria', 'Kenya'],
+    'lat': [26.8, 9.0, -1.2], 'lon': [30.8, 8.6, 36.8],
+    'Revenue': [1000000, 2500000, 1800000],
+    'GP_Percentage': [15, 8, 12],
+    'Progress': [75, 40, 90]
+}
+df = pd.DataFrame(data)
+
+# Top KPIs
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Portfolio", f"${df['Revenue'].sum():,}")
+col2.metric("Avg GP%", f"{df['GP_Percentage'].mean():.1f}%")
+col3.metric("Active Projects", "3")
+
+# The Map (Red & White Theme)
+st.subheader("Regional Risk Map")
+fig = px.scatter_mapbox(df, lat="lat", lon="lon", size="Revenue", color="GP_Percentage",
+                  color_continuous_scale=['#CC0000', '#F5F5F5', '#444444'],
+                  hover_name="Project", zoom=2, mapbox_style="carto-positron")
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+st.plotly_chart(fig, use_container_width=True)
