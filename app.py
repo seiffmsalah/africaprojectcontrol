@@ -38,4 +38,5 @@ fig = px.scatter_mapbox(df, lat="lat", lon="lon", size="Revenue", color="GP_Perc
                   color_continuous_scale=['#CC0000', '#F5F5F5', '#444444'],
                   hover_name="Project", zoom=2, mapbox_style="carto-positron")
 fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
 st.plotly_chart(fig, use_container_width=True)
