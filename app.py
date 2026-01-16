@@ -4,9 +4,7 @@ import plotly.express as px
 import numpy as np
 import plotly.graph_objects as go
 
-# ────────────────────────────────────────────────
 # Page config + readable dark text on white background
-# ────────────────────────────────────────────────
 st.set_page_config(page_title="Project Construction Dashboard", layout="wide")
 
 st.markdown("""
@@ -25,9 +23,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ────────────────────────────────────────────────
 # Sample data generation
-# ────────────────────────────────────────────────
 african_countries = [
     'Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon', 'Cape Verde',
     'Central African Republic', 'Chad', 'Comoros', 'Democratic Republic of the Congo', 'Republic of Congo',
@@ -64,15 +60,11 @@ map_data['hover_text'] = map_data.apply(
     lambda r: f"{r['Country']}<br>{'Has project data' if r['Has Data'] else 'No project data'}", axis=1
 )
 
-# ────────────────────────────────────────────────
 # Session state to track selected country from map click
-# ────────────────────────────────────────────────
 if 'selected_country' not in st.session_state:
     st.session_state.selected_country = None
 
-# ────────────────────────────────────────────────
 # Main UI
-# ────────────────────────────────────────────────
 st.title("Project Construction Dashboard")
 st.markdown("Africa – Construction Project Overview & Control")
 
@@ -91,7 +83,7 @@ if st.sidebar.button("Clear Selection"):
     st.session_state.selected_country = None
     st.rerun()
 
-# ───── Interactive Africa Map ─────
+# Interactive Africa Map
 st.subheader("Project Locations – Africa")
 
 fig = px.choropleth(
@@ -107,9 +99,7 @@ fig = px.choropleth(
         'Budget Cost': ':,.0f',
         'Has Data': False,
         'Country': False
-    },
-    # Fixed: customdata must be 2D array-like
-    customdata=map_data[['Country']].values
+    }
 )
 
 fig.update_traces(
@@ -144,18 +134,15 @@ if st.session_state.selected_country:
 # Render chart and capture selection/click
 chart = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
 
-# ───── Handle map click event ─────
+# Handle map click event
 if chart and 'selection' in chart and chart['selection']:
     points = chart['selection'].get('points', [])
     if points:
-        # customdata comes as list → take first element
-        clicked_data = points[0].get('customdata')
-        if clicked_data and isinstance(clicked_data, list) and len(clicked_data) > 0:
-            clicked_country = clicked_data[0]
-            if clicked_country in data['Country'].values:
-                st.session_state.selected_country = clicked_country
+        clicked_country = points[0].get('location')
+        if clicked_country and clicked_country in data['Country'].values:
+            st.session_state.selected_country = clicked_country
 
-# ───── Display project details when selected ─────
+# Display project details when selected
 if st.session_state.selected_country:
     country = st.session_state.selected_country
     if country in data['Country'].values:
