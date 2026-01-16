@@ -22,9 +22,8 @@ st.markdown("""
     .stProgress > div { background-color: #e0e0e0 !important; }
     section[data-testid="stSidebar"] { background-color: #f8f9fa !important; }
     h1, h2, h3 { color: black !important; }
-    .logo-container { text-align: center; margin: 1rem 0 2rem 0; }
+    .logo-container { text-align: center; margin: 1.5rem 0 2rem 0; }
     .logo-container img { max-width: 380px; height: auto; }
-    .donut-title { font-size: 1.1rem; font-weight: 600; color: #1a1a1a !important; text-align: center; margin-bottom: 0.5rem; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -37,7 +36,7 @@ st.markdown(
 )
 
 # ────────────────────────────────────────────────
-# Sample data (unchanged)
+# Sample data
 # ────────────────────────────────────────────────
 african_countries = [
     'Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon', 'Cape Verde',
@@ -70,7 +69,9 @@ data['ETC'] = data['EAC'] - data['Actual Costs']
 map_data = pd.DataFrame({'Country': african_countries})
 map_data = map_data.merge(data, on='Country', how='left')
 map_data['Has Data'] = ~map_data['Revenue'].isna()
-map_data['hover_text'] = map_data.apply(lambda r: f"{r['Country']}<br>{'Has project data' if r['Has Data'] else 'No project data'}", axis=1)
+map_data['hover_text'] = map_data.apply(
+    lambda r: f"{r['Country']}<br>{'Has project data' if r['Has Data'] else 'No project data'}", axis=1
+)
 
 # Session state
 if 'selected_country' not in st.session_state:
@@ -82,38 +83,66 @@ if 'selected_country' not in st.session_state:
 st.title("Elsewedy Electric T&D – Project Construction Dashboard")
 st.markdown("Africa – Project Overview & Control")
 
-# Sidebar (unchanged)
+# Sidebar
 st.sidebar.title("Controls")
 sidebar_country = st.sidebar.selectbox(
     "Jump to Country / Project",
     options=["(Click map or select)"] + sorted(data['Country'].unique().tolist())
 )
+
 if sidebar_country != "(Click map or select)":
     st.session_state.selected_country = sidebar_country
+
 st.sidebar.markdown("---")
 if st.sidebar.button("Clear Selection"):
     st.session_state.selected_country = None
     st.rerun()
 
-# Map (unchanged)
+# Map
 st.subheader("Project Locations – Africa")
+
 fig = px.choropleth(
-    map_data, locations='Country', locationmode='country names',
-    color='Has Data', color_discrete_map={True: 'red', False: 'lightgrey'},
-    scope='africa', hover_name='hover_text',
-    hover_data={'Revenue': ':,.0f', 'Budget Cost': ':,.0f', 'Has Data': False, 'Country': False}
+    map_data,
+    locations='Country',
+    locationmode='country names',
+    color='Has Data',
+    color_discrete_map={True: 'red', False: 'lightgrey'},
+    scope='africa',
+    hover_name='hover_text',
+    hover_data={
+        'Revenue': ':,.0f',
+        'Budget Cost': ':,.0f',
+        'Has Data': False,
+        'Country': False
+    }
 )
-fig.update_traces(marker_line_width=0.8, marker_line_color='darkgrey', hovertemplate="%{hovertext}<extra></extra>")
-fig.update_layout(coloraxis_showscale=False, margin=dict(r=0,t=30,l=0,b=0),
-                  paper_bgcolor='white', geo=dict(bgcolor='white'), clickmode='event+select')
+
+fig.update_traces(
+    marker_line_width=0.8,
+    marker_line_color='darkgrey',
+    hovertemplate="%{hovertext}<extra></extra>"
+)
+
+fig.update_layout(
+    coloraxis_showscale=False,
+    margin=dict(r=0, t=30, l=0, b=0),
+    paper_bgcolor='white',
+    geo=dict(bgcolor='white'),
+    clickmode='event+select'
+)
 
 if st.session_state.selected_country:
     sel = map_data[map_data['Country'] == st.session_state.selected_country]
     if not sel.empty:
         fig.add_trace(go.Choropleth(
-            locations=sel['Country'], locationmode='country names', z=[1],
-            colorscale=[[0, 'black'], [1, 'black']], showscale=False,
-            marker_line_width=2.5, marker_line_color='black', hoverinfo='skip'
+            locations=sel['Country'],
+            locationmode='country names',
+            z=[1],
+            colorscale=[[0, 'black'], [1, 'black']],
+            showscale=False,
+            marker_line_width=2.5,
+            marker_line_color='black',
+            hoverinfo='skip'
         ))
 
 chart = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
@@ -126,7 +155,7 @@ if chart and 'selection' in chart and chart['selection']:
             st.session_state.selected_country = clicked_country
 
 # ────────────────────────────────────────────────
-# Project Details + AI-enhanced animated progress
+# Project Details + two donut charts (like before)
 # ────────────────────────────────────────────────
 if st.session_state.selected_country:
     country = st.session_state.selected_country
@@ -134,6 +163,8 @@ if st.session_state.selected_country:
         row = data[data['Country'] == country].iloc[0]
 
         st.subheader(f"Project: {country}")
+        st.markdown("**Selected via map or sidebar**")
+
         cols = st.columns(4)
         with cols[0]:
             st.metric("Revenue", f"${row['Revenue']:,.0f}")
@@ -150,98 +181,91 @@ if st.session_state.selected_country:
 
         st.divider()
 
-        # ─── Animated AI-style Progress Ring ───
-        st.subheader("AI-Enhanced Progress Intelligence")
-        st.caption("Move the What-If slider → watch the ring animate and shift color intelligently")
+        # Progress – two donut charts
+        st.subheader("Project Progress")
 
-        # What-if slider (controls animation target)
-        adj_poc_pct = st.slider(
-            "Simulate Adjusted Physical % Complete",
-            0, 100,
-            int(row['POC']*100),
-            format="%d%%",
-            key=f"slider_{country}"
-        )
+        donut_cols = st.columns(2)
 
-        # Compute values
-        planned = row['Planned Progress'] * 100
-        actual = row['Actual Progress'] * 100
-        simulated = adj_poc_pct  # target for animation
-
-        # Create animated ring
-        theta = np.linspace(0, 360, 100)
-        r_inner = 0.65
-        r_outer = 1.0
-
-        def arc(x_percent, color):
-            end_angle = (x_percent / 100) * 360
-            mask = theta <= end_angle
-            return go.Scatterpolar(
-                r=np.concatenate([np.full(50, r_inner), np.full(50, r_outer)[::-1]]),
-                theta=np.concatenate([theta[mask], theta[mask][::-1]]),
-                mode='lines',
-                line_color=color,
-                line_width=35,
-                fillcolor=color,
-                fill='toself',
-                hoverinfo='skip',
-                showlegend=False
+        with donut_cols[0]:
+            planned_pct = row['Planned Progress'] * 100
+            fig_planned = go.Figure(data=[go.Pie(
+                values=[planned_pct, 100 - planned_pct],
+                labels=['Progress', 'Remaining'],
+                hole=0.65,
+                marker_colors=['grey', '#f0f0f0'],
+                textinfo='none',
+                hoverinfo='label+percent',
+                pull=[0.02, 0]
+            )])
+            fig_planned.update_layout(
+                title_text=f"Planned Progress",
+                title_x=0.5,
+                title_font=dict(size=16, color='black'),
+                showlegend=False,
+                paper_bgcolor='white',
+                margin=dict(t=50, b=20, l=20, r=20),
+                height=280,
+                annotations=[dict(
+                    text=f"{planned_pct:.0f}%",
+                    x=0.5, y=0.5,
+                    font_size=40,
+                    font_color='black',
+                    showarrow=False
+                )]
             )
+            st.plotly_chart(fig_planned, use_container_width=True)
 
-        fig_ring = go.Figure()
-
-        # Background ring (light grey)
-        fig_ring.add_trace(go.Scatterpolar(
-            r=[r_inner, r_outer, r_outer, r_inner],
-            theta=[0, 0, 360, 360],
-            mode='lines',
-            line_color='#e0e0e0',
-            line_width=35,
-            fill='toself',
-            fillcolor='#f8f9fa',
-            hoverinfo='skip'
-        ))
-
-        # Planned arc (static grey)
-        fig_ring.add_trace(arc(planned, 'grey'))
-
-        # Actual arc (static red, thinner)
-        fig_ring.add_trace(arc(actual, '#d32f2f'))
-
-        # Simulated arc (animated, color shifts based on performance)
-        color_sim = 'orange' if simulated < planned else '#006400' if simulated > planned * 1.05 else '#d32f2f'
-        fig_ring.add_trace(arc(simulated, color_sim))
-
-        # Center text
-        diff = simulated - actual
-        status = "ON TRACK" if abs(diff) < 5 else "AHEAD ✓" if diff > 0 else "LAGGING ⚠"
-        fig_ring.add_annotation(
-            text=f"<b>{simulated:.0f}%</b><br><span style='font-size:0.9em;'>{status}</span>",
-            x=0.5, y=0.5, showarrow=False,
-            font=dict(size=38, color='black'), align='center'
-        )
-
-        fig_ring.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=False, range=[0,1]),
-                angularaxis=dict(visible=False, direction='clockwise', period=360)
-            ),
-            showlegend=False,
-            paper_bgcolor='white',
-            margin=dict(t=20, b=20, l=20, r=20),
-            height=380,
-            title=dict(text=f"Planned {planned:.0f}% vs Actual {actual:.0f}%", x=0.5, font=dict(size=16, color='black'))
-        )
-
-        st.plotly_chart(fig_ring, use_container_width=True)
+        with donut_cols[1]:
+            actual_pct = row['Actual Progress'] * 100
+            fig_actual = go.Figure(data=[go.Pie(
+                values=[actual_pct, 100 - actual_pct],
+                labels=['Progress', 'Remaining'],
+                hole=0.65,
+                marker_colors=['#d32f2f', '#f0f0f0'],
+                textinfo='none',
+                hoverinfo='label+percent',
+                pull=[0.02, 0]
+            )])
+            fig_actual.update_layout(
+                title_text=f"Actual Progress",
+                title_x=0.5,
+                title_font=dict(size=16, color='black'),
+                showlegend=False,
+                paper_bgcolor='white',
+                margin=dict(t=50, b=20, l=20, r=20),
+                height=280,
+                annotations=[dict(
+                    text=f"{actual_pct:.0f}%",
+                    x=0.5, y=0.5,
+                    font_size=40,
+                    font_color='black',
+                    showarrow=False
+                )]
+            )
+            st.plotly_chart(fig_actual, use_container_width=True)
 
         st.divider()
         st.metric("Total Float (Schedule Buffer)", f"{row['Total Float']} days")
 
+        # What-if analysis
+        st.subheader("What-If: Simulate Different % Complete")
+        adj_poc_pct = st.slider(
+            "Adjusted Physical % Complete",
+            1, 100,
+            int(row['POC']*100),
+            format="%d%%",
+            key=f"slider_{country}"
+        )
+        adj_poc = adj_poc_pct / 100.0
+        adj_eac = row['Budget Cost'] / max(adj_poc, 0.005)
+        adj_etc = adj_eac - row['Actual Costs']
+        st.metric("Adjusted EAC", f"${adj_eac:,.0f}")
+        st.metric("Adjusted ETC", f"${adj_etc:,.0f}")
+
     else:
-        st.warning(f"No project data for {country}.")
+        st.warning(f"No project data available for {country}.")
 else:
     st.info("Click a **red** country on the map to view project details.")
 
 st.markdown("---")
-st.caption("Elsewedy Electric T&D – AI-Powered Project Control • Sample data • white / grey / black / red palette")
+st.caption("Elsewedy Electric T&D – Project Control Dashboard • Sample data • Colors: white / grey / black / red")
