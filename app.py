@@ -37,70 +37,28 @@ st.markdown(
 )
 
 # ────────────────────────────────────────────────
-# Country → ISO Alpha-2 code mapping (for flag emojis)
-# Only includes countries from your african_countries list
+# Country → ISO Alpha-2 code mapping for flag emojis
 # ────────────────────────────────────────────────
 country_to_code = {
-    'Algeria': 'DZ',
-    'Angola': 'AO',
-    'Benin': 'BJ',
-    'Botswana': 'BW',
-    'Burkina Faso': 'BF',
-    'Burundi': 'BI',
-    'Cameroon': 'CM',
-    'Cape Verde': 'CV',
-    'Central African Republic': 'CF',
-    'Chad': 'TD',
-    'Comoros': 'KM',
-    'Democratic Republic of the Congo': 'CD',
-    'Republic of Congo': 'CG',
-    'Djibouti': 'DJ',
-    'Egypt': 'EG',
-    'Equatorial Guinea': 'GQ',
-    'Eritrea': 'ER',
-    'Eswatini': 'SZ',
-    'Ethiopia': 'ET',
-    'Gabon': 'GA',
-    'Gambia': 'GM',
-    'Ghana': 'GH',
-    'Guinea': 'GN',
-    'Guinea-Bissau': 'GW',
-    'Ivory Coast': 'CI',
-    'Kenya': 'KE',
-    'Lesotho': 'LS',
-    'Liberia': 'LR',
-    'Libya': 'LY',
-    'Madagascar': 'MG',
-    'Malawi': 'MW',
-    'Mali': 'ML',
-    'Mauritania': 'MR',
-    'Mauritius': 'MU',
-    'Morocco': 'MA',
-    'Mozambique': 'MZ',
-    'Namibia': 'NA',
-    'Niger': 'NE',
-    'Nigeria': 'NG',
-    'Rwanda': 'RW',
-    'Sao Tome and Principe': 'ST',
-    'Senegal': 'SN',
-    'Seychelles': 'SC',
-    'Sierra Leone': 'SL',
-    'Somalia': 'SO',
-    'South Africa': 'ZA',
-    'South Sudan': 'SS',
-    'Sudan': 'SD',
-    'Tanzania': 'TZ',
-    'Togo': 'TG',
-    'Tunisia': 'TN',
-    'Uganda': 'UG',
-    'Zambia': 'ZM',
-    'Zimbabwe': 'ZW'
+    'Algeria': 'DZ', 'Angola': 'AO', 'Benin': 'BJ', 'Botswana': 'BW',
+    'Burkina Faso': 'BF', 'Burundi': 'BI', 'Cameroon': 'CM', 'Cape Verde': 'CV',
+    'Central African Republic': 'CF', 'Chad': 'TD', 'Comoros': 'KM',
+    'Democratic Republic of the Congo': 'CD', 'Republic of Congo': 'CG',
+    'Djibouti': 'DJ', 'Egypt': 'EG', 'Equatorial Guinea': 'GQ', 'Eritrea': 'ER',
+    'Eswatini': 'SZ', 'Ethiopia': 'ET', 'Gabon': 'GA', 'Gambia': 'GM',
+    'Ghana': 'GH', 'Guinea': 'GN', 'Guinea-Bissau': 'GW', 'Ivory Coast': 'CI',
+    'Kenya': 'KE', 'Lesotho': 'LS', 'Liberia': 'LR', 'Libya': 'LY',
+    'Madagascar': 'MG', 'Malawi': 'MW', 'Mali': 'ML', 'Mauritania': 'MR',
+    'Mauritius': 'MU', 'Morocco': 'MA', 'Mozambique': 'MZ', 'Namibia': 'NA',
+    'Niger': 'NE', 'Nigeria': 'NG', 'Rwanda': 'RW', 'Sao Tome and Principe': 'ST',
+    'Senegal': 'SN', 'Seychelles': 'SC', 'Sierra Leone': 'SL', 'Somalia': 'SO',
+    'South Africa': 'ZA', 'South Sudan': 'SS', 'Sudan': 'SD', 'Tanzania': 'TZ',
+    'Togo': 'TG', 'Tunisia': 'TN', 'Uganda': 'UG', 'Zambia': 'ZM', 'Zimbabwe': 'ZW'
 }
 
 def get_flag_emoji(country_name):
     code = country_to_code.get(country_name)
     if code:
-        # Regional indicator symbols: A=🇦 ... Z=🇿
         return ''.join(chr(ord(c) + 0x1F1E6 - ord('A')) for c in code.upper())
     return ""
 
@@ -167,7 +125,10 @@ with left_col:
             row = data[data['Country'] == country].iloc[0]
 
             flag = get_flag_emoji(country)
-            st.subheader(f"Project: {country} <span class='country-flag'>{flag}</span>", unsafe_allow_html=True)
+            st.markdown(
+                f"### Project: {country} <span class='country-flag'>{flag}</span>",
+                unsafe_allow_html=True
+            )
             st.markdown("**Selected via map or sidebar**")
 
             cols = st.columns(4)
