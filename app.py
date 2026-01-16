@@ -3,202 +3,289 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
-import requests
-from streamlit_lottie import st_lottie
 
 # ────────────────────────────────────────────────
-# 1. Page Config (Must be the very first Streamlit command)
+# Page config + styling
 # ────────────────────────────────────────────────
 st.set_page_config(page_title="Elsewedy T&D Project Dashboard", layout="wide")
 
-# ────────────────────────────────────────────────
-# 2. Enhanced Styling & Animations
-# ────────────────────────────────────────────────
 st.markdown("""
     <style>
-    .stApp { background-color: white; }
-    
-    /* Animated Metric Card Effect */
-    [data-testid="stMetric"] {
-        background-color: #f8f9fa;
-        border-left: 5px solid #d32f2f;
-        padding: 15px;
-        border-radius: 8px;
-        transition: all 0.3s ease-in-out;
+    .stApp, .main, .block-container { background-color: white !important; }
+    body, div, span, p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stText,
+    .stExpander, .stSidebar, .stSelectbox, .stSlider, .stNumberInput {
+        color: #1a1a1a !important;
     }
-    [data-testid="stMetric"]:hover {
-        transform: translateY(-5px);
-        box-shadow: 0px 4px 15px rgba(211, 47, 47, 0.15);
-        background-color: #fffafa;
-    }
-
-    /* Pulsing Status Dot */
-    .pulse-container { display: flex; align-items: center; gap: 12px; margin-bottom: 5px; }
-    .pulse-dot {
-        width: 12px; height: 12px; background: #d32f2f; border-radius: 50%;
-        box-shadow: 0 0 0 rgba(211, 47, 47, 0.4);
-        animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-        0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
-        100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
-    }
-
-    /* Progress Bar Color */
+    .stMetric label, .stMetric .metric-value { color: black !important; }
+    .stMetric .metric-delta { color: #b22222 !important; }
     .stProgress > div > div > div { background-color: #d32f2f !important; }
-    .logo-container { text-align: center; margin-bottom: 2rem; }
-    .logo-container img { max-width: 350px; height: auto; }
+    .stProgress > div { background-color: #e0e0e0 !important; }
+    section[data-testid="stSidebar"] { background-color: #f8f9fa !important; }
+    h1, h2, h3 { color: black !important; }
+    .logo-container { text-align: center; margin: 1.5rem 0 2rem 0; }
+    .logo-container img { max-width: 400px; height: auto; }
+    .country-flag { font-size: 2.2rem; margin-left: 0.5rem; }
     </style>
 """, unsafe_allow_html=True)
 
-# ────────────────────────────────────────────────
-# 3. Data & Assets
-# ────────────────────────────────────────────────
-@st.cache_data
-def load_lottieurl(url: str):
-    try:
-        r = requests.get(url, timeout=5)
-        if r.status_code != 200:
-            return None
-        return r.json()
-    except:
-        return None
+# Logo – using a stable mirror (black bg + red curve style)
+st.markdown(
+    '<div class="logo-container">'
+    '<img src="https://logos-world.net/wp-content/uploads/2023/04/Elsewedy-Electric-Logo.png" alt="Elsewedy Electric Logo">'
+    '</div>',
+    unsafe_allow_html=True
+)
 
-# Industrial/Energy Animation Link
-lottie_url = "https://assets5.lottiefiles.com/packages/lf20_V9t630.json"
-lottie_data = load_lottieurl(lottie_url)
-
+# ────────────────────────────────────────────────
+# Country → ISO Alpha-2 code mapping for flag emojis
+# ────────────────────────────────────────────────
 country_to_code = {
-    'Algeria': 'DZ', 'Angola': 'AO', 'Egypt': 'EG', 'Ethiopia': 'ET', 
-    'Ghana': 'GH', 'Kenya': 'KE', 'Morocco': 'MA', 'Nigeria': 'NG', 
-    'South Africa': 'ZA', 'Tanzania': 'TZ', 'Uganda': 'UG', 'Zambia': 'ZM'
+    'Algeria': 'DZ', 'Angola': 'AO', 'Benin': 'BJ', 'Botswana': 'BW',
+    'Burkina Faso': 'BF', 'Burundi': 'BI', 'Cameroon': 'CM', 'Cape Verde': 'CV',
+    'Central African Republic': 'CF', 'Chad': 'TD', 'Comoros': 'KM',
+    'Democratic Republic of the Congo': 'CD', 'Republic of Congo': 'CG',
+    'Djibouti': 'DJ', 'Egypt': 'EG', 'Equatorial Guinea': 'GQ', 'Eritrea': 'ER',
+    'Eswatini': 'SZ', 'Ethiopia': 'ET', 'Gabon': 'GA', 'Gambia': 'GM',
+    'Ghana': 'GH', 'Guinea': 'GN', 'Guinea-Bissau': 'GW', 'Ivory Coast': 'CI',
+    'Kenya': 'KE', 'Lesotho': 'LS', 'Liberia': 'LR', 'Libya': 'LY',
+    'Madagascar': 'MG', 'Malawi': 'MW', 'Mali': 'ML', 'Mauritania': 'MR',
+    'Mauritius': 'MU', 'Morocco': 'MA', 'Mozambique': 'MZ', 'Namibia': 'NA',
+    'Niger': 'NE', 'Nigeria': 'NG', 'Rwanda': 'RW', 'Sao Tome and Principe': 'ST',
+    'Senegal': 'SN', 'Seychelles': 'SC', 'Sierra Leone': 'SL', 'Somalia': 'SO',
+    'South Africa': 'ZA', 'South Sudan': 'SS', 'Sudan': 'SD', 'Tanzania': 'TZ',
+    'Togo': 'TG', 'Tunisia': 'TN', 'Uganda': 'UG', 'Zambia': 'ZM', 'Zimbabwe': 'ZW'
 }
 
 def get_flag_emoji(country_name):
     code = country_to_code.get(country_name)
     if code:
         return ''.join(chr(ord(c) + 0x1F1E6 - ord('A')) for c in code.upper())
-    return "🌍"
+    return ""
 
-# Generate Mock Data
+# ────────────────────────────────────────────────
+# Sample data
+# ────────────────────────────────────────────────
+african_countries = list(country_to_code.keys())
+
 np.random.seed(42)
+selected_countries = np.random.choice(african_countries, size=15, replace=False)
 data = pd.DataFrame({
-    'Country': list(country_to_code.keys()),
-    'Revenue': np.random.randint(1200000, 7200000, size=len(country_to_code)),
-    'Budget Cost': np.random.randint(900000, 5500000, size=len(country_to_code)),
-    'Actual Costs': np.random.randint(600000, 4200000, size=len(country_to_code)),
-    'POC': np.random.uniform(0.15, 0.95, size=len(country_to_code)),
-    'Planned Progress': np.random.uniform(0.25, 0.99, size=len(country_to_code)),
-    'Actual Progress': np.random.uniform(0.10, 0.92, size=len(country_to_code)),
-    'Total Float': np.random.randint(5, 140, size=len(country_to_code))
+    'Country': selected_countries,
+    'Revenue': np.random.randint(1200000, 7200000, size=15),
+    'Budget Cost': np.random.randint(900000, 5500000, size=15),
+    'Actual Costs': np.random.randint(600000, 4200000, size=15),
+    'Achieved Revenue': np.random.randint(500000, 3800000, size=15),
+    'POC': np.random.uniform(0.15, 0.95, size=15),
+    'Planned Progress': np.random.uniform(0.25, 0.99, size=15),
+    'Actual Progress': np.random.uniform(0.10, 0.92, size=15),
+    'Total Float': np.random.randint(5, 140, size=15)
 })
-data['GP%'] = ((data['Revenue'] - data['Budget Cost']) / data['Revenue']) * 100
 
-# ────────────────────────────────────────────────
-# 4. Main Layout
-# ────────────────────────────────────────────────
-st.markdown(
-    '<div class="logo-container">'
-    '<img src="https://logos-world.net/wp-content/uploads/2023/04/Elsewedy-Electric-Logo.png" alt="Elsewedy Logo">'
-    '</div>',
-    unsafe_allow_html=True
+data['GP%'] = ((data['Revenue'] - data['Budget Cost']) / data['Revenue']) * 100
+data['EAC'] = data['Budget Cost'] / np.maximum(data['POC'], 0.005)
+data['ETC'] = data['EAC'] - data['Actual Costs']
+
+map_data = pd.DataFrame({'Country': african_countries})
+map_data = map_data.merge(data, on='Country', how='left')
+map_data['Has Data'] = ~map_data['Revenue'].isna()
+map_data['hover_text'] = map_data.apply(
+    lambda r: f"{r['Country']}<br>{'Has project data' if r['Has Data'] else 'No project data'}", axis=1
 )
 
+# Session state
 if 'selected_country' not in st.session_state:
     st.session_state.selected_country = None
+
+# ────────────────────────────────────────────────
+# Main Layout: Left = Data | Right = Map
+# ────────────────────────────────────────────────
+st.title("Elsewedy Electric T&D – Project Construction Dashboard")
+st.markdown("Africa – Project Overview & Control")
 
 left_col, right_col = st.columns([6, 4])
 
 with left_col:
-    # Sidebar Logic
+    st.sidebar.title("Controls")
     sidebar_country = st.sidebar.selectbox(
-        "Navigation",
-        options=["(Select Project)"] + sorted(data['Country'].unique().tolist())
+        "Jump to Country / Project",
+        options=["(Click map or select)"] + sorted(data['Country'].unique().tolist())
     )
-    if sidebar_country != "(Select Project)":
+
+    if sidebar_country != "(Click map or select)":
         st.session_state.selected_country = sidebar_country
 
+    st.sidebar.markdown("---")
+    if st.sidebar.button("Clear Selection"):
+        st.session_state.selected_country = None
+        st.rerun()
+
     if st.session_state.selected_country:
-        row = data[data['Country'] == st.session_state.selected_country].iloc[0]
-        
-        # Dashboard Header with Pulse
-        h_col1, h_col2 = st.columns([0.85, 0.15])
-        with h_col1:
-            st.markdown(f"""
-                <div class="pulse-container">
-                    <div class="pulse-dot"></div>
-                    <h1 style='margin:0;'>{st.session_state.selected_country} Site {get_flag_emoji(st.session_state.selected_country)}</h1>
-                </div>
-            """, unsafe_allow_html=True)
-            st.caption("Active Project Data • Live Stream Enabled")
-        
-        with h_col2:
-            if lottie_data:
-                st_lottie(lottie_data, height=70, key="header_anim")
-            else:
-                st.write("🏗️")
+        country = st.session_state.selected_country
+        if country in data['Country'].values:
+            row = data[data['Country'] == country].iloc[0]
 
-        # Top Metrics
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Contract Value", f"${row['Revenue']:,.0f}")
-        m2.metric("Gross Profit Margin", f"{row['GP%']:.1f}%")
-        m3.metric("Schedule Buffer", f"{row['Total Float']} Days")
+            flag = get_flag_emoji(country)
+            st.markdown(
+                f"### Project: {country} <span class='country-flag'>{flag}</span>",
+                unsafe_allow_html=True
+            )
+            st.markdown("**Selected via map or sidebar**")
 
-        st.divider()
+            cols = st.columns(4)
+            with cols[0]:
+                st.metric("Revenue", f"${row['Revenue']:,.0f}")
+                st.metric("Budget Cost", f"${row['Budget Cost']:,.0f}")
+            with cols[1]:
+                st.metric("Gross Profit %", f"{row['GP%']:.1f}%")
+                st.metric("Actual Costs", f"${row['Actual Costs']:,.0f}")
+            with cols[2]:
+                st.metric("Achieved Revenue", f"${row['Achieved Revenue']:,.0f}")
+                st.metric("Physical % Complete", f"{row['POC']*100:.1f}%")
+            with cols[3]:
+                st.metric("EAC", f"${row['EAC']:,.0f}")
+                st.metric("ETC", f"${row['ETC']:,.0f}")
 
-        # Progress Visuals
-        d1, d2 = st.columns(2)
-        prog_configs = [
-            (d1, "Planned Progress", row['Planned Progress'], "#6c757d", "p1"),
-            (d2, "Actual (Physical)", row['Actual Progress'], "#d32f2f", "p2")
-        ]
-        
-        for col, title, val, color, k in prog_configs:
-            with col:
-                fig = go.Figure(go.Pie(
-                    values=[val*100, 100-(val*100)],
-                    hole=0.75,
-                    marker_colors=[color, "#f0f2f6"],
-                    textinfo='none'
-                ))
-                fig.update_layout(
-                    title=dict(text=title, x=0.5, font=dict(size=14)),
-                    height=220, margin=dict(t=40, b=0, l=0, r=0),
+            st.divider()
+
+            st.subheader("Project Progress")
+            donut_cols = st.columns(2)
+
+            with donut_cols[0]:
+                planned_pct = row['Planned Progress'] * 100
+                fig_planned = go.Figure(data=[go.Pie(
+                    values=[planned_pct, 100 - planned_pct],
+                    labels=['Progress', 'Remaining'],
+                    hole=0.65,
+                    marker_colors=['grey', '#f0f0f0'],
+                    textinfo='none',
+                    hoverinfo='label+percent',
+                    pull=[0.02, 0]
+                )])
+                fig_planned.update_layout(
+                    title_text="Planned Progress",
+                    title_x=0.5,
+                    title_font=dict(size=16, color='black'),
                     showlegend=False,
-                    annotations=[dict(text=f"{val*100:.0f}%", x=0.5, y=0.5, font_size=24, showarrow=False)]
+                    paper_bgcolor='white',
+                    margin=dict(t=50, b=20, l=20, r=20),
+                    height=280,
+                    annotations=[dict(
+                        text=f"{planned_pct:.0f}%",
+                        x=0.5, y=0.5,
+                        font_size=40,
+                        font_color='black',
+                        showarrow=False
+                    )]
                 )
-                st.plotly_chart(fig, use_container_width=True, key=k)
+                st.plotly_chart(fig_planned, use_container_width=True)
 
+            with donut_cols[1]:
+                actual_pct = row['Actual Progress'] * 100
+                fig_actual = go.Figure(data=[go.Pie(
+                    values=[actual_pct, 100 - actual_pct],
+                    labels=['Progress', 'Remaining'],
+                    hole=0.65,
+                    marker_colors=['#d32f2f', '#f0f0f0'],
+                    textinfo='none',
+                    hoverinfo='label+percent',
+                    pull=[0.02, 0]
+                )])
+                fig_actual.update_layout(
+                    title_text="Actual Progress",
+                    title_x=0.5,
+                    title_font=dict(size=16, color='black'),
+                    showlegend=False,
+                    paper_bgcolor='white',
+                    margin=dict(t=50, b=20, l=20, r=20),
+                    height=280,
+                    annotations=[dict(
+                        text=f"{actual_pct:.0f}%",
+                        x=0.5, y=0.5,
+                        font_size=40,
+                        font_color='black',
+                        showarrow=False
+                    )]
+                )
+                st.plotly_chart(fig_actual, use_container_width=True)
+
+            st.divider()
+            st.metric("Total Float (Schedule Buffer)", f"{row['Total Float']} days")
+
+            st.subheader("What-If: Simulate Different % Complete")
+            adj_poc_pct = st.slider(
+                "Adjusted Physical % Complete",
+                1, 100,
+                int(row['POC']*100),
+                format="%d%%",
+                key=f"slider_{country}"
+            )
+            adj_poc = adj_poc_pct / 100.0
+            adj_eac = row['Budget Cost'] / max(adj_poc, 0.005)
+            adj_etc = adj_eac - row['Actual Costs']
+            st.metric("Adjusted EAC", f"${adj_eac:,.0f}")
+            st.metric("Adjusted ETC", f"${adj_etc:,.0f}")
+
+        else:
+            st.warning(f"No project data available for {country}.")
     else:
-        st.info("Select a project to view metrics.")
-        if lottie_data:
-            st_lottie(lottie_data, height=350, key="main_idle")
+        st.info("Select a country from the sidebar or click a **red** country on the map (right side).")
 
 with right_col:
-    st.subheader("Regional Project Map")
-    fig_map = px.choropleth(
-        data,
+    st.subheader("Project Locations – Africa")
+
+    fig = px.choropleth(
+        map_data,
         locations='Country',
         locationmode='country names',
-        color='Revenue',
-        color_continuous_scale='Reds',
+        color='Has Data',
+        color_discrete_map={True: 'red', False: 'lightgrey'},
         scope='africa',
-        template='plotly_white'
+        hover_name='hover_text',
+        hover_data={
+            'Revenue': ':,.0f',
+            'Budget Cost': ':,.0f',
+            'Has Data': False,
+            'Country': False
+        }
     )
-    fig_map.update_layout(
-        margin=dict(r=0, t=0, l=0, b=0),
+
+    fig.update_traces(
+        marker_line_width=0.8,
+        marker_line_color='darkgrey',
+        hovertemplate="%{hovertext}<extra></extra>"
+    )
+
+    fig.update_layout(
         coloraxis_showscale=False,
-        geo=dict(bgcolor='white', lakecolor='white')
+        margin=dict(r=0, t=30, l=0, b=0),
+        paper_bgcolor='white',
+        geo=dict(bgcolor='white'),
+        clickmode='event+select',
+        height=650
     )
-    
-    selected_map = st.plotly_chart(fig_map, use_container_width=True, on_select="rerun")
-    
-    if selected_map and selected_map.get("selection"):
-        points = selected_map["selection"].get("points")
+
+    if st.session_state.selected_country:
+        sel = map_data[map_data['Country'] == st.session_state.selected_country]
+        if not sel.empty:
+            fig.add_trace(go.Choropleth(
+                locations=sel['Country'],
+                locationmode='country names',
+                z=[1],
+                colorscale=[[0, 'black'], [1, 'black']],
+                showscale=False,
+                marker_line_width=2.5,
+                marker_line_color='black',
+                hoverinfo='skip'
+            ))
+
+    chart = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
+
+    if chart and 'selection' in chart and chart['selection']:
+        points = chart['selection'].get('points', [])
         if points:
-            st.session_state.selected_country = points[0].get("location")
-            st.rerun()
+            clicked_country = points[0].get('location')
+            if clicked_country and clicked_country in data['Country'].values:
+                st.session_state.selected_country = clicked_country
 
 st.markdown("---")
-st.caption("Elsewedy T&D Digital Control Center • 2026")
+st.caption("Elsewedy Electric T&D – Project Control Dashboard • Sample data • Colors: white / grey / black / red")
